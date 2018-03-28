@@ -1,0 +1,65 @@
+version: "3.4"
+
+services:
+  elasticsearch-proxy:
+    build:
+      context: ./elasticsearch
+      dockerfile: Dockerfile-haproxy
+    image: 'peer-mountain01:5005/teleferic-mvp/elasticsearch/proxy:${TAG:-latest}'
+    networks:
+      - elasticsearch
+
+  elasticsearch1:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.2
+    ports:
+      - 9200:9200
+    environment:
+      - network.host=0.0.0.0
+      - cluster.name=elasticsearch-cluster
+      - node.name=elasticsearch1
+      - ES_JAVA_OPTS=-Xmx512m -Xms512m
+    volumes:
+      - /data/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - elasticsearch
+
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G 
+      restart_policy:
+        condition: 'on-failure'
+      placement:
+        constraints:
+          - node.labels.elasticsearch == 1
+
+  elasticsearch2:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.2
+    environment:
+      - network.host=0.0.0.0
+      - cluster.name=elasticsearch-cluster
+      - node.name=elasticsearch2
+      - ES_JAVA_OPTS=-Xmx512m -Xms512m
+      - "discovery.zen.ping.unicast.hosts=elasticsearch1"
+    volumes:
+      - /data/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - elasticsearch
+
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G 
+      restart_policy:
+        condition: 'on-failure'
+      placement:
+        constraints:
+          - node.labels.elasticsearch == 2
+
+networks:
+  elasticsearch:
+    external: true
