@@ -29,7 +29,7 @@ push_image:
 deploy:
   script:
     - export TAG="${CI_BUILD_REF_NAME}"
-    - docker stack deploy -c docker-compose.yml elasticsearch
+    - docker stack deploy -c docker-compose.yml --with-registry-auth elasticsearch
   stage: deploy
   tags:
     - shell
